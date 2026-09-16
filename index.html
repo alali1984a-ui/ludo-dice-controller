@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>لعبة لودو تعليمية + وحدة تحكم النرد</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --panel:#0b1220;
+      --accent:#2563eb;
+      --tile:#fff;
+      --muted:#94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 16px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: var(--bg);
+      color: #0b1220;
+      direction: rtl;
+    }
+    header h1 { margin: 0 0 6px 0; }
+    header p { margin: 0 0 12px 0; color:var(--muted); }
+    .layout { display:flex; gap:20px; align-items:flex-start; }
+    #board-area { flex:1; max-width: 720px; }
+    #board {
+      display:grid;
+      grid-template-columns: repeat(8, 56px);
+      grid-auto-rows: 56px;
+      gap:8px;
+      background: transparent;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .tile {
+      background: var(--tile);
+      border-radius: 8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#0f172a;
+      box-shadow: 0 6px 14px rgba(2,6,23,0.06);
+      position:relative;
+    }
+    .piece {
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:12px;
+      font-weight:700;
+      box-shadow: 0 4px 8px rgba(2,6,23,0.12);
+    }
+    #info { margin-top:12px; color:var(--muted); }
+    #log { margin-top:8px; color:#0b1220; font-size:14px; min-height:22px; }
+    #controls { width:220px; }
+    #controls button {
+      display:block;
+      width:100%;
+      padding:10px 12px;
+      margin-bottom:8px;
+      border-radius:10px;
+      border:0;
+      cursor:pointer;
+      font-weight:700;
+      background: linear-gradient(180deg,var(--accent),#1d4ed8);
+      color:#fff;
+    }
+
+    /* لوحة تحكم النرد العائمة */
+    .ludo-dice-panel {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 999999;
+      background: rgba(10, 10, 20, 0.95);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      min-width: 220px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.35);
+      direction: rtl;
+      font-size: 14px;
+    }
+    .ludo-dice-panel .header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .ludo-dice-panel .title { font-weight:700; }
+    .ludo-dice-buttons { display:flex; gap:6px; justify-content:space-between; }
+    .ludo-dice-btn {
+      flex:1;
+      padding:8px 6px;
+      background: linear-gradient(180deg,#fff 0%, #f3f4f6 100%);
+      color:#111;
+      border-radius:8px;
+      border: none;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .ludo-close { background:transparent; border:0; color:#e6e7eb; cursor:pointer; font-size:16px; }
+    .small { font-size:12px; color:#e6e7eb; opacity:.9; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>لعبة لودو تعليمية</h1>
+    <p>واجهة تحكم النرد مُضمّنة — استعمل الأزرار أو حروف 1-6 على لوحة المفاتيح.</p>
+  </header>
+
+  <main class="layout">
+    <section id="board-area">
+      <div id="board" aria-label="لوحة اللعب"></div>
+      <div id="info">
+        <div>اللاعب الحالي: <span id="current-player">1</span></div>
+        <div>نتيجة النرد: <span id="dice-value">-</span></div>
+        <div id="log" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <aside id="controls">
+      <button id="manual-roll">رمي تلقائي</button>
+      <button id="reset-game">إعادة ضبط</button>
+      <p class="small">يمكنك أيضاً استخدام واجهة النرد العائمة أو ضغط الأرقام 1–6.</p>
+    </aside>
+  </main>
+
+  <!-- لوحة تحكم النرد (مضمنة) -->
+  <script>
+    // Ludo Dice Controller - مضمّن وآمن (لا يتصل بمواقع خارجية)
+    (function () {
+      if (window.__ludoDiceControllerLoaded) return;
+      window.__ludoDiceControllerLoaded = true;
+
+      const panel = document.createElement('div');
+      panel.className = 'ludo-dice-panel';
+      panel.setAttribute('aria-label', 'وحدة تحكم النرد');
+      panel.innerHTML = `
+        <div class="header">
+          <div>
+            <div class="title">تحكم النرد</div>
+            <div class="small">اضغط رقم (1-6) أو استخدم الأزرار</div>
+          </div>
+          <button class="ludo-close" title="إغلاق" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="ludo-dice-buttons" role="group" aria-label="أزرار النرد">
+          <button class="ludo-dice-btn" data-value="1">1</button>
+          <button class="ludo-dice-btn" data-value="2">2</button>
+          <button class="ludo-dice-btn" data-value="3">3</button>
+          <button class="ludo-dice-btn" data-value="4">4</button>
+          <button class="ludo-dice-btn" data-value="5">5</button>
+          <button class="ludo-dice-btn" data-value="6">6</button>
+        </div>
+      `;
+
+      // أنماط احتياطية خفيفة
+      const fallbackStylesId = 'ludo-dice-fallback-styles';
+      if (!document.getElementById(fallbackStylesId)) {
+        const s = document.createElement('style');
+        s.id = fallbackStylesId;
+        s.textContent = `
+          .ludo-dice-panel { font-family: sans-serif; }
+          .ludo-dice-btn { font-size: 16px; padding: 8px; }
+        `;
+        document.head.appendChild(s);
+      }
+
+      document.body.appendChild(panel);
+
+      function publish(value) {
+        const v = Number(value);
+        const ev = new CustomEvent('ludoDiceController:roll', {
+          detail: { value: v },
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(ev);
+        console.log('[LudoDiceController] نشر قيمة النرد:', v);
+        flashButton(value);
+      }
+
+      function flashButton(value) {
+        const btn = panel.querySelector(`.ludo-dice-btn[data-value="${value}"]`);
+        if (!btn) return;
+        btn.style.boxShadow = '0 8px 20px rgba(255,255,255,0.12)';
+        setTimeout(() => { btn.style.boxShadow = ''; }, 220);
+      }
+
+      panel.addEventListener('click', (e) => {
+        const b = e.target.closest('.ludo-dice-btn');
+        if (b) {
+          publish(b.getAttribute('data-value'));
+        }
+        if (e.target.closest('.ludo-close')) {
+          panel.style.display = 'none';
+        }
+      });
+
+      function keyHandler(e) {
+        if (e.key >= '1' && e.key <= '6') {
+          publish(e.key);
+        }
+      }
+      window.addEventListener('keydown', keyHandler, { passive: true });
+
+      window.LudoDiceController = {
+        publish,
+        show() { panel.style.display = ''; },
+        hide() { panel.style.display = 'none'; },
+        destroy() {
+          window.removeEventListener('keydown', keyHandler);
+          panel.remove();
+          delete window.LudoDiceController;
+          window.__ludoDiceControllerLoaded = false;
+        }
+      };
+
+      console.log('[LudoDiceController] جاهز. استمع للحدث "ludoDiceController:roll" للحصول على القيمة.');
+    })();
+  </script>
+
+  <!-- منطق اللعبة -->
+  <script>
+    /*
+     لعبة لودو تعليمية مبسطة
+     - مسار مكوّن من 24 خانة
+     - لكل لاعب قطعة واحدة (للتبسيط)
+     - تستقبل قيمة النرد من الحدث 'ludoDiceController:roll'
+    */
+    const Game = (function () {
+      const BOARD_SIZE = 24;
+      const players = [
+        { id: 1, color: '#ef4444', pos: 0 },
+        { id: 2, color: '#10b981', pos: 0 }
+      ];
+      let current = 0;
+
+      const boardEl = document.getElementById('board');
+      const currentPlayerEl = document.getElementById('current-player');
+      const diceValueEl = document.getElementById('dice-value');
+      const logEl = document.getElementById('log');
+
+      function buildBoard() {
+        boardEl.innerHTML = '';
+        for (let i = 0; i < BOARD_SIZE; i++) {
+          const t = document.createElement('div');
+          t.className = 'tile';
+          t.dataset.index = i;
+          t.innerHTML = `<span>${i+1}</span>`;
+          boardEl.appendChild(t);
+        }
+        renderPieces();
+      }
+
+      function renderPieces() {
+        const tiles = boardEl.querySelectorAll('.tile');
+        tiles.forEach(t => t.innerHTML = `<span>${parseInt(t.dataset.index)+1}</span>`);
+        players.forEach(p => {
+          const idx = ((p.pos % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
+          const tile = boardEl.querySelector(`.tile[data-index="${idx}"]`);
+          if (tile) {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.style.background = p.color;
+            piece.textContent = p.id;
+            tile.appendChild(piece);
+          }
+        });
+      }
+
+      function log(msg) {
+        const time = new Date().toLocaleTimeString();
+        logEl.textContent = `[${time}] ${msg}`;
+      }
+
+      function applyRoll(value) {
+        if (typeof value !== 'number' || value < 1 || value > 6) {
+          console.warn('قيمة نرد غير صالحة:', value);
+          return;
+        }
+        const p = players[current];
+        diceValueEl.textContent = String(value);
+        log(`اللاعب ${p.id} رمى ${value}`);
+
+        p.pos += value;
+        animateMove(p, value).then(() => {
+          renderPieces();
+          if (p.pos >= BOARD_SIZE * 2) {
+            p.pos = p.pos % BOARD_SIZE;
+          }
+          current = (current + 1) % players.length;
+          updateUI();
+        });
+      }
+
+      function animateMove(player, steps) {
+        return new Promise(resolve => {
+          const start = player.pos - steps;
+          let stepIndex = 1;
+          const interval = setInterval(() => {
+            const intermediatePos = start + stepIndex;
+            player.pos = intermediatePos;
+            renderPieces();
+            stepIndex++;
+            if (stepIndex > steps) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 180);
+        });
+      }
+
+      function updateUI() {
+        currentPlayerEl.textContent = players[current].id;
+      }
+
+      function reset() {
+        players.forEach(p => p.pos = 0);
+        current = 0;
+        diceValueEl.textContent = '-';
+        buildBoard();
+        updateUI();
+        log('تمت إعادة ضبط اللعبة');
+      }
+
+      function setupEventListeners() {
+        window.addEventListener('ludoDiceController:roll', (e) => {
+          const v = e.detail && e.detail.value;
+          console.log('[Game] تم استقبال قيمة النرد من الواجهة:', v);
+          applyRoll(Number(v));
+        });
+
+        document.getElementById('manual-roll').addEventListener('click', () => {
+          const v = Math.floor(Math.random() * 6) + 1;
+          applyRoll(v);
+        });
+
+        document.getElementById('reset-game').addEventListener('click', reset);
+      }
+
+      function init() {
+        buildBoard();
+        setupEventListeners();
+        updateUI();
+        log('اللعبة جاهزة. استعمل لوحة التحكم العائمة أو اضغط "رمي تلقائي".');
+      }
+
+      return { init, reset };
+    })();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Game.init();
+    });
+  </script>
+</body>
+</html>

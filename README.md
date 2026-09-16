@@ -1,2 +1,27 @@
-# ludo-dice-controller
-Educational local Ludo game and a safe Ludo Dice Controller (interface only). For local/testing use only.
+# Ludo Dice Controller — Educational (Local Only)
+
+حزمة تعليمية تضم لعبة لودو بسيطة وواجهة تحكم بالنرد (آمنة ومحلية).
+
+المحتويات:
+- `index.html` — صفحة واحدة تضم اللعبة البسيطة ولوحة التحكم بالنرد.
+- `ludostar-dice-controller.user.js` — Userscript (Tampermonkey) لعرض لوحة النرد على صفحات محلية (file://) و localhost.
+
+كيفية التشغيل:
+1. قم بتنزيل المستودع كملف ZIP أو استنساخه (Clone).
+2. افتح `index.html` في متصفح حديث (Chrome, Edge, Firefox).
+3. ستظهر لعبة لودو التعليمية ولوحة تحكم النرد عائمة أسفل يسار. اضغط 1–6 أو استخدم لوحة المفاتيح أو زر "رمي تلقائي".
+
+تثبيت Userscript (اختياري):
+1. ثبت Tampermonkey أو Greasemonkey في متصفحك.
+2. استورد `ludostar-dice-controller.user.js` وثبّته.
+3. افتح صفحة محلية (file://) أو http://localhost/ وستظهر لوحة التحكم من خلال السكريبت.
+
+رابط تنزيل مباشر لفرع main (ZIP):
+https://github.com/alali1984a-ui/ludo-dice-controller/archive/refs/heads/main.zip
+
+تحذيرات قانونية وأمان:
+- هذه الحزمة مخصصة للاستخدام المحلي ولأغراض تعليمية أو للاختبار على مشاريع تملكها.
+- لا تستخدم هذه الأداة لحقن أو تغيير سلوك ألعاب أو خدمات طُرِحت من قبل أطراف ثالثة أو على خوادم لا تملكها.
+- أي استخدام غير قانوني أو مخالف لشروط الخدمة يقع على عاتق المستخدم.
+
+رخصة: MIT
